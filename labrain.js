@@ -47,7 +47,7 @@ exports.BRAINZZZ = function (filename) {
 			if (cmd === '!lerne') {
 				arr = arr.slice(1);
 				console.log(arr);
-				if (arr.length === 1) {
+				if (arr.length <= 1) {
 					return 'hübsch! aber was soll ich sagen?'
 				} else {
 					var key = arr[0];
@@ -68,6 +68,12 @@ exports.BRAINZZZ = function (filename) {
 						return 'hab irgendwas vergessen.'
 					}
 				}
+			} else if (cmd === '!liste') {
+				var result = [];
+				for (var k in answers) {
+					result.push('"' + k + '"');
+				}
+				return result.join(',');
 			} else {
 				return null;
 			}
