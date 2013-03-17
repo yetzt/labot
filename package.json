@@ -1,0 +1,19 @@
+{
+	"name": "labot",
+	"version": "0.0.1",
+	"description": "An XMPP bot",
+	"author": "Sebastian Vollnhals <sebastian@vollnhals.info>",
+	"preferGlobal": true,
+	"bin": {
+		"labot": "./labot.js"
+	},
+	"dependencies": {
+		"colors": ">= 0.6",
+		"optimist": ">= 0.3",
+		"xml2js": ">= 0.2.4",
+		"node-xmpp": ">= 0.3.2"
+	},
+	"engines": {
+		"node": ">= 0.8.15"
+	}
+}
