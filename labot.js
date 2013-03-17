@@ -9,6 +9,7 @@ var xmpp = require('node-xmpp');
 var xml2js = require('xml2js');
 var config = require(path.resolve(__dirname, "config.js"));
 var parser = new xml2js.Parser();
+var brain = require(path.resolve(__dirname, "labrain.js")).BRAINZZZ(config.datafile);
 
 var chat = new xmpp.Client({
 	jid: config.username, 
@@ -39,35 +40,9 @@ chat.on('stanza', function(stanza) {
 		stanza.children.forEach(function(_item){
 			if (_item.name === 'body') {
 				var _txt = _item.children[0];
-				if (_txt.match(/penis/i)) {
-					sendmsg("Gnihihihi");
-				}
-				if (_txt.match(/vulva/i)) {
-					sendmsg("Gnihihihi");
-				}
-				if (_txt.match(/glitch/i)) {
-					sendmsg(":(");
-				}
-				if (_txt.match(/hach/i)) {
-					sendmsg("<3");
-				}
-				if (_txt.match(/yetzt/i)) {
-					sendmsg("das petz ich.");
-				}
-				if (_txt.match(/fresse/i)) {
-					sendmsg("bin ja schon ruhig.");
-				}
-				if (_txt.match(/berlin/i)) {
-					sendmsg("druff jeschissen.");
-				}
-				if (_txt.match(/purple/i)) {
-					var _id = (parseInt((Math.random() * 1000), 10) % config.meeble.length);
-					sendmsg(config.meeble[_id]);
-				}
-				if (_txt.match(/dingshirn/i)) {
-					var _id = (parseInt((Math.random() * 1000), 10) % config.phrases.length);
-					sendmsg(config.phrases[_id]);
-				}
+				var answer = brain.eat(_txt);
+				if (answer)
+					sendmsg(answer);
 			}
 		});
 	} else if (stanza.is('presence')) {
