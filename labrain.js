@@ -248,7 +248,7 @@ exports.BRAINZZZ = function (filename) {
 	}
 
 	function decide() {
-		speak(Math.random() === 1 ? 'ja' : 'nein');
+		speak((parseInt((Math.random() * 1000), 10) % 2) === 1 ? 'ja' : 'nein');
 	}
 
 	me.eat = function (text) {
