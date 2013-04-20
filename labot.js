@@ -60,7 +60,7 @@ chat.on('stanza', function (stanza) {
 			brain.init(sendmsg);
 			saidLa = true;
 		} else {
-			console.log(stanza);
+			//console.log(stanza);
 			brain.react(stanza.attrs.from, stanza.attrs.type);
 		}
 	}
