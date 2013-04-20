@@ -81,8 +81,7 @@ exports.BRAINZZZ = function (filename) {
 		var key = keys[some];
 		var list = blabbers[key];
 		if ((list) && (list.length > 0)) {
-			var _id = (parseInt((Math.random() * 1000), 10) % list.length);
-			speak(list[_id]);
+			speak(getRandomText(list));
 		}
 	}
 
@@ -95,7 +94,6 @@ exports.BRAINZZZ = function (filename) {
 	};
 
 	function learn(arr) {
-		console.log(arr);
 		if (arr.length <= 1) {
 			speak('hübsch! aber was soll ich sagen?');
 		} else {
@@ -112,13 +110,14 @@ exports.BRAINZZZ = function (filename) {
 	}
 
 	function forget(arr) {
-		if (arr.length === 1) {
+		var text = arr.join(' ');
+		if (text.length === 0) {
 			speak('was soll ich vergessen?');
 		} else {
-			if (!answers[arr[1]]) {
+			if (!answers[text]) {
 				speak('das kannte ich eh nich. habs trotzdem vergessen.');
 			} else {
-				delete answers[arr[1]];
+				delete answers[text];
 				saveData();
 				speak('hab irgendwas vergessen.');
 			}
@@ -128,9 +127,52 @@ exports.BRAINZZZ = function (filename) {
 	function recall() {
 		var result = [];
 		for (var k in answers) {
-			result.push('"' + k + '"');
+			result.push('"' + k + '" -> "' + answers[k] + '"');
 		}
-		speak(result.join(','));
+		speak(result.join("\n"));
+	}
+
+	function learnBlabber(arr) {
+		if (arr.length <= 1) {
+			speak('hübsch! aber was soll ich sagen?');
+		} else {
+			var key = arr[0];
+			arr = arr.slice(1);
+			blabbers[key] = blabbers[key] || [];
+			blabbers[key].push(arr.join(' '));
+			saveData();
+			speak('ok. notiert');
+		}
+	}
+
+	function forgetBlabber(arr) {
+		if (arr.length === 1) {
+			speak('was soll ich vergessen?');
+		} else {
+			var arr2 = blabbers[arr[0]];
+			arr = arr.slice(1);
+			var text = arr.join(' ');
+			if ((!arr2) || (arr2.indexOf(text) < 0)) {
+				speak('das kannte ich eh nich. habs trotzdem vergessen.');
+			} else {
+				arr2.splice(arr2.indexOf(text), 1);
+				saveData();
+				speak('hab irgendwas vergessen.');
+			}
+		}
+	}
+
+	function recallBlabbers() {
+		speak(Object.keys(blabbers).join("\n"));
+	}
+
+	function recallBlabber(arr) {
+		var arr2 = blabbers[arr[0]];
+		if (arr2) {
+			speak(arr2.join("\n"));
+		} else {
+			speak('kenn ich nich');
+		}
 	}
 
 	function search(arr) {
@@ -171,45 +213,32 @@ exports.BRAINZZZ = function (filename) {
 		});
 	}
 
-	function tweet(text) {
-		twitterer.post("http://api.twitter.com/1/statuses/update.json",
-			TWITTER_TOKEN,
-			TWITTER_SECRET,
-			({'status': text}),
-			"application/json",
-			function (error, data, response2) {
-				if (error) {
-					console.log('Error: ' + JSON.stringify(error) + '\n');
-					for (i in response2) {
-						out = i + ' : ';
-						try {
-							out += response2[i];
-						}
-						catch (err) {
-						}
-						out += '\n';
-						console.log(out);
-					}
-				}
-				else {
-					console.log('Twitter status updated.');
-				}
-			});
-	}
-
 	function info() {
 		var result = [];
-		result.push('!google [anzahl ergebnisse] [-desc] Suchtext');
-		result.push('!twitter Text');
-		result.push('!lerne trigger antwort - Automatische Antwort hinzufügen');
-		result.push('!vergiss trigger - Automatische Antwort entfernen');
-		result.push('!liste - Alle Automatische Antworten anzeigen');
-		result.push('!brabbel - Zufällige Texte an-/ausschalten');
-		result.push('!grüß - Linkshirne begrüßen an-/ausschalten');
-		result.push('!entscheide - sagt ja oder nein');
-		result.push('!was - diese Liste anzeigen');
-//		result.push('!hau_ab_bot - Bot ausschalten');
+		result.push("\n" +'-- Tools --');
+		result.push('!google [anzahl ergebnisse] [-desc] suchtext' + "\n" + '  - macht ne suche');
+		result.push('!twitter text ' + "\n" + ' - ja, twittern eben');
+		result.push('!entscheide ' + "\n" + ' - sag ja oder nein');
+		result.push("\n" +'-- Automatische Antwort --');
+		result.push('!lerne trigger antwort ' + "\n" + ' - Antwort hinzufügen');
+		result.push('!vergiss trigger ' + "\n" + ' - Antwort entfernen');
+		result.push('!liste ' + "\n" + ' - Trigger anzeigen');
+		result.push("\n" +'-- Zufällige Antwort --');
+		result.push('!lerne2 trigger antwort ' + "\n" + ' - Antwort hinzufügen');
+		result.push('!vergiss2 trigger antwort ' + "\n" + ' - Antwort entfernen');
+		result.push('!liste2 trigger ' + "\n" + ' - Antworten anzeigen');
+		result.push('!liste3 ' + "\n" + ' - Trigger anzeigen');
+		result.push("\n" +'-- Einstellungen --');
+		result.push('!brabbel ' + "\n" + ' - Zufällige Texte an-/ausschalten');
+		result.push('!grüß ' + "\n" + ' - Accounts begrüßen an-/ausschalten');
+		result.push('!was ' + "\n" + ' - Diese Liste anzeigen');
+		result.push('!hau_ab_bot | Bot ausschalten');
 		speak(result.join("\n"));
+	}
+
+	function getRandomText(arr) {
+		var _id = (parseInt((Math.random() * 1000), 10) % arr.length);
+		return arr[_id];
 	}
 
 	function tweet(arr) {
@@ -220,11 +249,14 @@ exports.BRAINZZZ = function (filename) {
 			} else if (txt.length > 140) {
 				speak('oh noez, mit ' + txt.length + ' zu lang zum twittern :.( ')
 			} else {
+				if (blabbers[txt]) {
+					txt = getRandomText(blabbers[txt]);
+				}
 				twitter.tweetIt(txt, function (err, data) {
 					if (err) {
 						speak('mist. konnte nicht tweeten: ' + err);
 					} else {
-						speak('ok. getwittert!');
+						speak('ok. getwittert: ' + "\n" + txt);
 					}
 				})
 			}
@@ -241,8 +273,7 @@ exports.BRAINZZZ = function (filename) {
 		for (var kb in blabbers) {
 			var re = new RegExp(kb, "i");
 			if (re.test(text)) {
-				var _id = (parseInt((Math.random() * 1000), 10) % blabbers[kb].length);
-				speak(blabbers[kb][_id]);
+				speak(getRandomText(blabbers[kb]));
 			}
 		}
 	}
@@ -264,6 +295,14 @@ exports.BRAINZZZ = function (filename) {
 				forget(arr);
 			} else if (cmd === '!liste') {
 				recall();
+			} else if (cmd === '!lerne2') {
+				learnBlabber(arr);
+			} else if (cmd === '!vergiss2') {
+				forgetBlabber(arr);
+			} else if (cmd === '!liste2') {
+				recallBlabber(arr);
+			} else if (cmd === '!liste3') {
+				recallBlabbers();
 			} else if (cmd === '!google') {
 				search(arr);
 			} else if (cmd === '!entscheide') {
@@ -286,4 +325,5 @@ exports.BRAINZZZ = function (filename) {
 	};
 
 	return me;
-};
+}
+;
