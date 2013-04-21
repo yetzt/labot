@@ -11,12 +11,39 @@ var config = require(path.resolve(__dirname, "config.js"));
 var parser = new xml2js.Parser();
 var brain = require(path.resolve(__dirname, "labrain.js")).BRAINZZZ(config.datafile);
 
+console.log('start connection');
 var chat = new xmpp.Client({
 	jid: config.username,
 	password: config.password
 });
 
 var saidLa = false;
+
+chat.on('stanza', function (stanza) {
+	if (stanza.is('message') && (stanza.attrs.type === 'groupchat') && !fromMe(stanza) && !isBacklog(stanza)) {
+		stanza.children.forEach(function (item) {
+			if (item.name === 'body') {
+				var txt = '';
+				item.children.forEach(function (t) {
+					txt += t;
+				});
+				if (txt === "!hau_ab_bot") {
+					logout();
+				} else {
+					brain.eat(txt);
+				}
+			}
+		});
+	} else if (stanza.is('presence')) {
+		if (fromMe(stanza)) {
+			if (saidLa) return;
+			brain.init(sendmsg);
+			saidLa = true;
+		} else {
+			brain.react(stanza.attrs.from, stanza.attrs.type);
+		}
+	}
+});
 
 chat.on('online', function () {
 	console.log('online');
@@ -35,35 +62,8 @@ chat.on('online', function () {
 	);
 });
 
-chat.on('stanza', function (stanza) {
-	if (stanza.is('message') && stanza.attrs.type === 'groupchat' && !fromMe(stanza)) {
-		if (!isBacklog(stanza)) {
-			stanza.children.forEach(function (_item) {
-				if (_item.name === 'body') {
-					var _txt = '';
-					_item.children.forEach(function (t) {
-						_txt += t;
-					});
-					if (_txt === "!hau_ab_bot") {
-						logout();
-					} else {
-						brain.eat(_txt);
-					}
-				}
-			});
-		} else {
-			console.log('backlog ignored');
-		}
-	} else if (stanza.is('presence')) {
-		if (fromMe(stanza)) {
-			if (saidLa) return;
-			brain.init(sendmsg);
-			saidLa = true;
-		} else {
-			//console.log(stanza);
-			brain.react(stanza.attrs.from, stanza.attrs.type);
-		}
-	}
+chat.on('offline', function () {
+	console.log('offline');
 });
 
 chat.on('error', function (e) {
@@ -74,6 +74,7 @@ chat.on('error', function (e) {
 var fromMe = function (stanza) {
 	return (stanza.attrs.from === (config.room + "@" + config.conference + "/" + config.nickname) || stanza.attrs.from.split(/\//).shift() === config.username);
 };
+
 var isBacklog = function (stanza) {
 	// test on presence of items with "name: delay"
 	// backlog is sent with http://xmpp.org/protocols/urn_xmpp_delay/
@@ -97,19 +98,16 @@ var sendmsg = function (msg) {
 }
 
 var logout = function () {
+	console.log('logout');
 	var stanza = new xmpp.Element('presence',
 		{from: config.username, type: 'unavailable'});
 	chat.send(stanza);
 	setTimeout(function () {
+		console.log('end connection');
 		chat.end();
-	}, 10);
+	}, 2000);
 };
 
-process.on('SIGINT', function () {
-	console.log("\ngracefully shutting down from SIGINT")
-	logout();
-	setTimeout(function () {
-		process.exit();
-	}, 10);
-});
-
+exports.chat = chat;
+exports.logout = logout;
+exports.brain = brain;

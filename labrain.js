@@ -33,7 +33,7 @@ exports.BRAINZZZ = function (filename) {
 			return;
 		blabber();
 		var _sec = parseInt(Math.random() * 3000000, 10);
-		console.log(_sec, "bis frase");
+		//console.log(_sec, "bis frase");
 		setTimeout(randomblabber, _sec);
 	}
 
