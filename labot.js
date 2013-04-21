@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
-	labot.js – an xmpp bot
-**/
+ labot.js – an xmpp bot
+ **/
 
 var fs = require('fs');
 var path = require('path');
@@ -11,14 +11,41 @@ var config = require(path.resolve(__dirname, "config.js"));
 var parser = new xml2js.Parser();
 var brain = require(path.resolve(__dirname, "labrain.js")).BRAINZZZ(config.datafile);
 
+console.log('start connection');
 var chat = new xmpp.Client({
-	jid: config.username, 
+	jid: config.username,
 	password: config.password
 });
 
 var saidLa = false;
 
-chat.on('online', function() {
+chat.on('stanza', function (stanza) {
+	if (stanza.is('message') && (stanza.attrs.type === 'groupchat') && !fromMe(stanza) && !isBacklog(stanza)) {
+		stanza.children.forEach(function (item) {
+			if (item.name === 'body') {
+				var txt = '';
+				item.children.forEach(function (t) {
+					txt += t;
+				});
+				if (txt === "!hau_ab_bot") {
+					logout();
+				} else {
+					brain.eat(txt);
+				}
+			}
+		});
+	} else if (stanza.is('presence')) {
+		if (fromMe(stanza)) {
+			if (saidLa) return;
+			brain.init(sendmsg);
+			saidLa = true;
+		} else {
+			brain.react(stanza.attrs.from, stanza.attrs.type);
+		}
+	}
+});
+
+chat.on('online', function () {
 	console.log('online');
 	// c('status').t('zombi online')
 	chat.send(
@@ -30,66 +57,57 @@ chat.on('online', function() {
 		new xmpp.Element('presence', {
 			to: "" + config.room + "@" + config.conference + "/" + config.nickname
 		}).c('x', {
-			xmlns: 'http://jabber.org/protocol/muc'
-		})
+				xmlns: 'http://jabber.org/protocol/muc'
+			})
 	);
-});  
-
-chat.on('stanza', function(stanza) {
-	if (stanza.is('message') && stanza.attrs.type === 'groupchat' && !fromMe(stanza)) {
-		stanza.children.forEach(function(_item){
-			if (_item.name === 'body') {
-				var _txt = _item.children[0];
-				var answer = brain.eat(_txt);
-				if (answer)
-					sendmsg(answer);
-			}
-		});
-	} else if (stanza.is('presence')) {
-		if (fromMe(stanza)) {
-			if (saidLa) return;
-			// say LA!
-			sendmsg("LA!")
-			saidLa = true;
-			//setTimeout(start, parseInt(Math.random()*30000,10));
-			//setTimeout(meeble, parseInt(Math.random()*300000,10));
-		} else {
-			// say hello!
-			var _letter = stanza.attrs.from.split(/\//).pop().substr(0,1);
-			var _msg = (stanza.attrs.type !== 'unavailable') ? "\\"+_letter+"/" : "/"+_letter+"\\";
-			sendmsg(_msg);
-		}
-	}
 });
 
-chat.on('error', function(e) {
+chat.on('offline', function () {
+	console.log('offline');
+});
+
+chat.on('error', function (e) {
 	console.log(e);
 });
 
-var start = function() {
-	var _id = (parseInt((Math.random() * 1000), 10) % config.phrases.length);
-	sendmsg(config.phrases[_id]);
-	var _sec = parseInt(Math.random()*3000000,10);
-	console.log(_sec, "bis frase");
-	setTimeout(start, _sec);
-}
-
-var meeble = function() {
-	var _id = (parseInt((Math.random() * 1000), 10) % config.meeble.length);
-	sendmsg(config.meeble[_id]);
-	var _sec = parseInt(Math.random()*3000000,10);
-	console.log(_sec, "bis frase");
-	setTimeout(meeble, _sec);
-}
-
 /* helpers */
-var fromMe = function(stanza) {
-	return (stanza.attrs.from === (config.room+"@"+config.conference+"/"+config.nickname) || stanza.attrs.from.split(/\//).shift() === config.username);
+var fromMe = function (stanza) {
+	return (stanza.attrs.from === (config.room + "@" + config.conference + "/" + config.nickname) || stanza.attrs.from.split(/\//).shift() === config.username);
 };
 
-var sendmsg = function(msg) {
-	chat.send(new xmpp.Element('message',{
-		to: config.room+"@"+config.conference,
+var isBacklog = function (stanza) {
+	// test on presence of items with "name: delay"
+	// backlog is sent with http://xmpp.org/protocols/urn_xmpp_delay/
+	if (stanza.children.length > 1) {  //delay should never come alone
+		for (var i = 0; i < stanza.children.length; i++) {
+			if (stanza.children[i].name === 'delay') {
+				return true;
+			}
+		}
+	}
+	return false;
+};
+
+var sendmsg = function (msg) {
+	if (!msg)
+		return;
+	chat.send(new xmpp.Element('message', {
+		to: config.room + "@" + config.conference,
 		type: 'groupchat'
 	}).c('body').t(msg));
 }
+
+var logout = function () {
+	console.log('logout');
+	var stanza = new xmpp.Element('presence',
+		{from: config.username, type: 'unavailable'});
+	chat.send(stanza);
+	setTimeout(function () {
+		console.log('end connection');
+		chat.end();
+	}, 2000);
+};
+
+exports.chat = chat;
+exports.logout = logout;
+exports.brain = brain;
